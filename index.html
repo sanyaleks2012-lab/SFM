@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki Avatar Gallery</title>
+    <style>
+        :root {
+            --bg-color: #f6f6f6;
+            --card-bg: #ffffff;
+            --border-color: #a2a9b1;
+            --text-color: #202122;
+            --code-bg: #f8f9fa;
+            --accent-color: #36c;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: normal;
+        }
+
+        #search {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            width: 300px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: transform 0.1s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent-color);
+        }
+
+        .img-container {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #eaecf0;
+            border: 1px dashed #ccc;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .code-line {
+            background-color: var(--code-bg);
+            border: 1px solid #e1e1e1;
+            padding: 4px 6px;
+            font-family: monospace;
+            font-size: 11px;
+            width: 90%;
+            word-break: break-all;
+            cursor: pointer;
+            border-radius: 2px;
+            position: relative;
+            user-select: all;
+        }
+
+        .code-line:hover {
+            background-color: #eaf3ff;
+            border-color: var(--accent-color);
+        }
+
+        .code-line::after {
+            content: "Клик — копировать";
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 2px;
+            display: none;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .code-line:hover::after {
+            display: block;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2b2b2b;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 4px;
+            display: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Галерея аваторов Wiki</h1>
+        <input type="text" id="search" placeholder="Поиск иконки..." oninput="filterGallery()">
+    </header>
+
+    <div class="gallery" id="gallery"></div>
+    <div class="toast" id="toast">Скопировано в буфер обмена!</div>
+
+    <script>
+        const rawFiles = [
+            "ascension2_ninja_girl_swords.png", "ascension2_ninja_man_crescent_knives.png", 
+            "ascension2_ninja_man_keris.png", "ascension2_ninja_man_nunchaku.png", 
+            "ascension2_ninja_man_tonfa.png", "avatar_human.png", "avatar_masked.png", 
+            "bag_coins.png", "bag_coins_platinum.png", "bag_coins_zone7.png", "boosterpack.png", 
+            "boss_arkhos.png", "boss_berstuuk.png", "boss_Brother_Death.png", "boss_brother_death_1.png", 
+            "boss_brother_death_2.png", "boss_brother_death_3.png", "boss_brother_death_4.png", 
+            "boss_Brother_Death_hard.png", "boss_brother_death_hard_1.png", "boss_brother_death_hard_2.png", 
+            "boss_brother_death_hard_3.png", "boss_brother_death_hard_4.png", "boss_Brother_Opulence.png", 
+            "boss_brother_opulence_1.png", "boss_brother_opulence_2.png", "boss_brother_opulence_3.png", 
+            "boss_brother_opulence_4.png", "boss_Brother_Opulence_Hard.png", "boss_brother_opulence_hard_1.png", 
+            "boss_brother_opulence_hard_2.png", "boss_brother_opulence_hard_3.png", "boss_brother_opulence_hard_4.png", 
+            "boss_butcher.png", "boss_crystal.png", "boss_fatum.png", "boss_fire.png", "boss_hermit.png", 
+            "boss_hoaxen.png", "boss_hoaxen_halloween.png", "boss_huntress.png", "boss_mushroom.png", 
+            "boss_shogun.png", "boss_titan.png", "boss_vortex.png", "boss_wasp.png", "character_ancient.png", 
+            "character_asian.png", "character_assasin.png", "character_blind.png", "character_corsair.png", 
+            "character_cypher.png", "character_disciple.png", "character_emperor.png", "character_fanatic.png", 
+            "character_guru.png", "character_hyperion.png", "character_indean.png", "character_justice.png", 
+            "character_justice_2.png", "character_kali.png", "character_lazarus.png", "character_master.png", 
+            "character_may_2.png", "character_may_3.png", "character_may_5.png", "character_may_6.png", 
+            "character_may_mafest26.png", "character_may_sad.png", "character_pirate.png", "character_prince_evil.png", 
+            "character_pristess.png", "character_ronin.png", "character_sadist.png", "character_shroud.png", 
+            "character_sister.png", "character_thief.png", "character_thief_2.png", "character_thief_3.png", 
+            "character_thief_small.png", "chest_coins_zone7.png", "drop_katana.png", "drop_kusarigama.png", 
+            "drop_naginata.png", "drop_ring_sword.png", "drop_wanderer_staff.png", "girl_butterfly_swords.png", 
+            "girl_cloak.png", "girl_dirk.png", "girl_golden_katana.png", "girl_hammers.png", 
+            "girl_hero_shocker_claws.png", "girl_katana.png", "girl_keris.png", "girl_knives.png", 
+            "girl_knives_2.png", "girl_kusarigama.png", "girl_kusarigama_1.png", "girl_kusarigama_2.png", 
+            "girl_magari_yari.png", "girl_nunchaku.png", "girl_nunchaku_2.png", "girl_sai_2.png", 
+            "girl_shuang_gou.png", "girl_spear.png", "girl_sword.png", "girl_swords_2.png", 
+            "girl_z7_tournament_glaive.png", "hunter_raid.png", "img_drop_blue_seal.png", "img_drop_green_seal.png", 
+            "img_drop_im_knuckles.png", "img_drop_jade_seal.png", "img_drop_orange_seal.png", "img_drop_purple_seal.png", 
+            "img_drop_red_seal.png", "img_drop_titan_sphere.png", "looter_girl_scythe.png", "looter_girl_staff.png", 
+            "looter_man_glaive.png", "looter_man_knives.png", "looter_man_section_scythe.png", "looter_man_staff.png", 
+            "Lottery_Assistant.png", "man_axe.png", "man_axes_2.png", "man_axes_3.png", "man_batons_2.png", 
+            "man_batons_3.png", "man_batons_4.png", "man_big_hammer.png", "man_big_mace_2.png", "man_big_sword.png", 
+            "man_big_swords.png", "man_chinese_sabre.png", "man_chinese_sabre_2.png", "man_claws.png", 
+            "man_clutches.png", "man_cool_staff.png", "man_crescent.png", "man_crescent_knives.png", "man_dadao.png", 
+            "man_dadao_janissary.png", "man_daggers.png", "man_deerhorn.png", "man_fist.png", "man_fists.png", 
+            "man_glaive.png", "man_glaive_2.png", "man_glaive_3.png", "man_heavy_hammer.png", "man_heavy_kusarigama.png", 
+            "man_heavy_staff.png", "man_hero_composite_spear.png", "man_hero_composite_sword.png", "man_hero_power_fists.png", 
+            "man_heronkungfu.png", "man_invisible.png", "man_katar.png", "man_keris.png", "man_knives.png", 
+            "man_knives_2.png", "man_labrys_axes.png", "man_long_katana.png", "man_maces.png", "man_machete.png", 
+            "man_magari_yari.png", "man_moon_sabers.png", "man_naginata.png", "man_ninja_naginata.png", "man_nunchaku.png", 
+            "man_nunchaku_2.png", "man_sai_2.png", "man_scythe.png", "man_sickle.png", "man_spear.png", 
+            "man_staff.png", "man_staff_3.png", "man_steel_claws.png", "man_stilettos.png", "man_sword_2.png", 
+            "man_swords_2.png", "man_tatoo.png", "man_titans_army_1.png", "man_titans_army_2.png", "man_titans_army_3.png", 
+            "man_titans_army_4.png", "man_tonfa.png", "man_tonfa_2.png", "man_tonfa_3.png", "man_tonfa_4.png", 
+            "man_trident.png", "man_trident_1.png", "man_two_handed_mace.png", "man_wakidzashi.png", "man_wakidzashi_2.png", 
+            "man_yari.png", "man_z7_tournament_daggers.png", "man_z7_tournament_firebatons.png", "man_z7_tournament_knobsticks.png", 
+            "man_z7_tournament_scythes.png", "man_z7_tournament_staff.png", "man_z7_tournament_sword.png", "man_z7_tournament_swords.png", 
+            "ninja_girl_golden_katana.png", "ninja_girl_katar.png", "ninja_girl_moon_sabers.png", "ninja_girl_nunchaku.png", 
+            "ninja_girl_sai.png", "ninja_girl_sharp_tonfa.png", "ninja_girl_sickles.png", "ninja_girl_stilettos.png", 
+            "ninja_girl_swords.png", "ninja_man_axes.png", "ninja_man_batons.png", "ninja_man_big_hammer.png", 
+            "ninja_man_big_mace.png", "ninja_man_butterfly_swords.png", "ninja_man_chinese_sabers.png", "ninja_man_claws.png", 
+            "ninja_man_crescent_knives.png", "ninja_man_dadao.png", "ninja_man_glaive.png", "ninja_man_hammers.png", 
+            "ninja_man_heavy_staff.png", "ninja_man_keris.png", "ninja_man_knives.png", "ninja_man_knives_2.png", 
+            "ninja_man_knuckles.png", "ninja_man_kunai.png", "ninja_man_kungfu.png", "ninja_man_kusarigama.png", 
+            "ninja_man_labrys_axes.png", "ninja_man_maces.png", "ninja_man_machete.png", "ninja_man_magari_yari.png", 
+            "ninja_man_ninja_sword.png", "ninja_man_nunchaku.png", "ninja_man_sai.png", "ninja_man_shuang_gou.png", 
+            "ninja_man_spear.png", "ninja_man_staff.png", "ninja_man_swords.png", "ninja_man_tonfa.png", 
+            "ninja_man_two_handed_mace.png", "ninja_man_yari.png", "pile_coins_platinum.png", "pile_coins_zone7.png", 
+            "premium_pack_zone1.png", "profit50.png", "profit50mask.png", "profit55.png", "profit55mask.png", 
+            "profit60.png", "profit60mask.png", "profit65.png", "profit65mask.png", "profit70.png", 
+            "profit70mask.png", "ProfitShine.png", "ProfitShine_low.png", "scavenger_1.png", "scavenger_2.png", 
+            "scavenger_3.png", "scavenger_4.png", "starter_pack.png", "starter_pack2.png", "starter_pack_zone_raid.png", 
+            "stranger_z7.png", "tickets.png", "woman_z7_tournament_scythes.png"
+        ];
+
+        const gallery = document.getElementById('gallery');
+
+        function renderGallery(files) {
+            gallery.innerHTML = '';
+            files.forEach(file => {
+                // Извлечение имени без расширения для avatar="$"
+                const iconName = file.replace(/\.[^/.]+$/, "");
+                const avatarString = `avatar="${iconName}"`;
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="img-container">
+                        <img src="Users/${file}" alt="${iconName}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\'><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23888\'>404</text></svg>'">
+                    </div>
+                    <div class="code-line" onclick="copyToClipboard('${avatarString}')">${avatarString}</div>
+                `;
+                gallery.appendChild(card);
+            });
+        }
+
+        function filterGallery() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const filtered = rawFiles.filter(file => file.toLowerCase().includes(query));
+            renderGallery(filtered);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2000);
+            });
+        }
+
+        // Инициализация
+        renderGallery(rawFiles);
+    </script>
+</body>
+</html>
